@@ -2,6 +2,8 @@
 
 This is a simple app made with Playwright that issues invoices using structured data from a CSV or XLSX file. The data in this example is for a lodging business, but can be amended to fit any other business needs. `csv.ts` contains logic and `interfaces.ts` contains types for better DX.
 
+Licensed under the [MIT License](LICENCE).
+
 ## Instructions
 
 1. Make sure you have the following env vars:
@@ -49,3 +51,12 @@ Each invoice is issued with a 60-second timeout. If the step takes longer (e.g. 
 
 - `app.ts` is the CLI entry point; it delegates invoice issuance to the `InvoiceIssuer` class in `invoice-issuer.ts`.
 - Playwright locators and actions for issuing a single invoice live in `invoice-issuer.ts`.
+
+## Attribution
+
+The MIT License requires that the **copyright notice and permission text** in [`LICENCE`](LICENCE) stay with all copies or substantial portions of this software. Do not remove or replace that notice when you redistribute or ship derivatives.
+
+When you mention this project publicly (documentation, blog posts, talks, or similar), please credit the original work, for example:
+
+- **Author:** Lucas Verdiell
+- **Source:** [github.com/lukasver/facturador](https://github.com/lukasver/facturador)
