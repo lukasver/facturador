@@ -40,17 +40,31 @@ export interface ParseCsvOptions {
   headerMapping?: Record<string, string>;
 }
 
+/**
+ * Maps CSV/XLSX empty cells (`""`) and whitespace-only values to `undefined`
+ * so round-tripped files behave like omitted optional columns.
+ */
+function normalizeOptionalString(
+  val: string | null | undefined,
+): string | undefined {
+  if (val === null || val === undefined) {
+    return undefined;
+  }
+  const trimmed = val.trim();
+  return trimmed === '' ? undefined : trimmed;
+}
 
 export const ColumnsSchema = z.object({
   NOMBRE: z.string(),
   // For CUIT the address is picked up automatically at AFIP
-  DOMICILIO: z.string().nullish(),
+  DOMICILIO: z.string().nullish().transform(normalizeOptionalString),
   TIPO_DOCUMENTO: z.string().transform(val => normalizeDocumentType(val)),
   NUMERO: z.string().transform(val => cleanDocumentNumber(val)),
   CONCEPTO: z.string(),
-  COD: z.string().nullish(),
+  COD: z.string().nullish().transform(normalizeOptionalString),
   TOTAL: z.string().transform((val) => parseAmount(val)),
-  FACTURA_TIPO: z.string().nullish(), // Optional: "A" | "B" | "C" (default: "C")
+  /** Optional: "A" | "B" | "C" (default: "C" in mapper). */
+  FACTURA_TIPO: z.string().nullish().transform(normalizeOptionalString),
   IVA_GRAVADO: z.string().nullish().transform(val => val ? Number(val) : undefined), // Optional: percentage (default: 100)
   IVA_EXCEMPT: z.string().nullish().transform(val => val ? Number(val) : undefined), // Optional: percentage (default: 0)
   IVA_PERCENTAGE: z.string().nullish().transform(val => val ? Number(val) : undefined), // Optional: tax rate (default: 21)

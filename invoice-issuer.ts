@@ -1,4 +1,5 @@
 import type { Page } from 'playwright';
+import path from 'node:path';
 import type { Columns } from './types/file';
 import { COLUMNS_ORDER } from './types/file';
 import { DateTime, Duration } from 'luxon';
@@ -24,8 +25,42 @@ export interface SaveSummaryOptions {
   includeSuccess?: boolean;
   /** Include failed rows (e.g. for rerun). Default: true. */
   includeFailed?: boolean;
-  /** Output path. If omitted, generates invoices/run-summary-{timestamp}.{csv|xlsx}. */
+  /**
+   * Output directory or full file path.
+   * If omitted: writes `invoices/run-summary-{timestamp}.{ext}`.
+   * If it ends with the target extension (`.csv` / `.xlsx`), uses that file path.
+   * Otherwise treated as a directory and writes `failed-{timestamp}.{ext}` inside it.
+   */
   path?: string;
+}
+
+const SUMMARY_DEFAULT_SUBDIR = 'invoices';
+const SUMMARY_FAILED_FILENAME_PREFIX = 'failed';
+
+/**
+ * Resolves where to write the summary file. Avoids treating `./dir` as a basename
+ * with a fake "extension" (e.g. `./summaries` must not become `.csv`).
+ */
+function resolveSummaryOutputPath(
+  optsPath: string | undefined,
+  format: 'csv' | 'xlsx',
+  timestamp: string,
+): string {
+  const ext = format === 'xlsx' ? '.xlsx' : '.csv';
+  if (optsPath === undefined) {
+    return path.join(
+      SUMMARY_DEFAULT_SUBDIR,
+      `run-summary-${timestamp}${ext}`,
+    );
+  }
+  const normalized = path.normalize(optsPath);
+  if (normalized.endsWith(ext)) {
+    return normalized;
+  }
+  return path.join(
+    normalized,
+    `${SUMMARY_FAILED_FILENAME_PREFIX}-${timestamp}${ext}`,
+  );
 }
 
 /**
@@ -205,11 +240,8 @@ export class InvoiceIssuer {
     const format = opts.format ?? 'csv';
     const includeSuccess = opts.includeSuccess ?? false;
     const includeFailed = opts.includeFailed ?? true;
-    const ext = format === 'xlsx' ? '.xlsx' : '.csv';
     const timestamp = DateTime.now().toFormat('yyyy-MM-dd_HH-mm-ss');
-    const defaultPath = `invoices/run-summary-${timestamp}${ext}`;
-    const basePath = opts.path ?? defaultPath;
-    const pathWithExt = basePath.endsWith(ext) ? basePath : `${basePath.replace(/\.[^.]+$/, '')}${ext}`;
+    const pathWithExt = resolveSummaryOutputPath(opts.path, format, timestamp);
 
     const successResults = this.results.filter((r) => r.status === 'success');
     const failedResults = this.results.filter((r) => r.status === 'failed');
